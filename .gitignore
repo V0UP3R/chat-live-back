@@ -1,0 +1,34 @@
+# Arquivos de ambiente virtual (venv)
+venv/
+*.pyc
+
+# Arquivos gerados pelo Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+
+# Arquivos de mídia
+media/
+
+# Arquivos estáticos
+staticfiles/
+
+# Arquivos de configuração que contêm chaves secretas ou sensíveis
+*.env
+.env.local
+.env.*.local
+
+# Arquivos de banco de dados
+db.sqlite3
+
+# Arquivos compilados e arquivos de saída
+*.pyo
+*.pyc
+__pycache__/
+*.so
+*.egg
+*.egg-info
+dist/
+build/
