@@ -14,7 +14,11 @@
     <script>
         const roomName = JSON.parse(document.getElementById('room-name').textContent);
 				var userName = document.querySelector('#user-name').value;
-
+				console.log('ws://'
+            + window.location.host
+            + '/ws/chat/'
+            + roomName
+            + '/')
         const chatSocket = new WebSocket(
             'ws://'
             + window.location.host
