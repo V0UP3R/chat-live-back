@@ -3,7 +3,9 @@ import json
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
+from channels.layers import get_channel_layer
 
+active_rooms = set()
 
 class ChatConsumer(WebsocketConsumer):
     def connect(self):
@@ -39,3 +41,19 @@ class ChatConsumer(WebsocketConsumer):
 
         # Send message to WebSocket
         self.send(text_data=json.dumps({"message": message}))
+    
+    def update_active_rooms(self):
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "active_rooms", {"type": "active.rooms", "rooms": list(active_rooms)}
+        )
+
+class ActiveRoomsConsumer(WebsocketConsumer):
+    def connect(self):
+        self.accept()
+        self.send(text_data=json.dumps({"rooms": list(active_rooms)}))
+        print("Conectado salas")
+
+    def active_rooms(self, event):
+        rooms = event["rooms"]
+        self.send(text_data=json.dumps({"rooms": rooms}))
