@@ -53,7 +53,7 @@ class ChatConsumer(WebsocketConsumer):
             ActiveRoom.objects.create(name=self.room_name)
 
     def remove_room(self):
-        if not self.channel_layer.groups.get(self.room_group_name):
+        if not ActiveRoom.objects.filter(name=self.room_name).exists():
             ActiveRoom.objects.filter(name=self.room_name).delete()
 
 class ActiveRoomsConsumer(WebsocketConsumer):
