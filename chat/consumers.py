@@ -1,11 +1,9 @@
 # chat/consumers.py
 import json
-
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from channels.layers import get_channel_layer
-
-active_rooms = set()
+from .models import ActiveRoom
 
 class ChatConsumer(WebsocketConsumer):
     def connect(self):
@@ -16,7 +14,8 @@ class ChatConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_add)(
             self.room_group_name, self.channel_name
         )
-        print("COOONECTADO")
+        self.add_room()
+        self.update_active_rooms()
         self.accept()
 
     def disconnect(self, close_code):
@@ -24,8 +23,9 @@ class ChatConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_discard)(
             self.room_group_name, self.channel_name
         )
+        self.remove_room()
+        self.update_active_rooms()
 
-    # Receive message from WebSocket
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
@@ -35,24 +35,40 @@ class ChatConsumer(WebsocketConsumer):
             self.room_group_name, {"type": "chat.message", "message": message}
         )
 
-    # Receive message from room group
     def chat_message(self, event):
         message = event["message"]
 
         # Send message to WebSocket
         self.send(text_data=json.dumps({"message": message}))
-    
+
     def update_active_rooms(self):
         channel_layer = get_channel_layer()
+        active_rooms = list(ActiveRoom.objects.values_list('name', flat=True))
         async_to_sync(channel_layer.group_send)(
-            "active_rooms", {"type": "active.rooms", "rooms": list(active_rooms)}
+            "active_rooms", {"type": "active.rooms", "rooms": active_rooms}
         )
+
+    def add_room(self):
+        if not ActiveRoom.objects.filter(name=self.room_name).exists():
+            ActiveRoom.objects.create(name=self.room_name)
+
+    def remove_room(self):
+        if not self.channel_layer.groups.get(self.room_group_name):
+            ActiveRoom.objects.filter(name=self.room_name).delete()
 
 class ActiveRoomsConsumer(WebsocketConsumer):
     def connect(self):
         self.accept()
-        self.send(text_data=json.dumps({"rooms": list(active_rooms)}))
-        print("Conectado salas")
+        active_rooms = list(ActiveRoom.objects.values_list('name', flat=True))
+        self.send(text_data=json.dumps({"rooms": active_rooms}))
+        async_to_sync(self.channel_layer.group_add)(
+            "active_rooms", self.channel_name
+        )
+
+    def disconnect(self, close_code):
+        async_to_sync(self.channel_layer.group_discard)(
+            "active_rooms", self.channel_name
+        )
 
     def active_rooms(self, event):
         rooms = event["rooms"]
